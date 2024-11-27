@@ -370,7 +370,8 @@ public:
         }
         _table_name.append("\\\"");
         _table_name.append(table_name);
-        _table_name.append("\"\\");
+        _table_name.append("\\\"");
+        _table_name.append(" ");
 
         return *this;
     }
