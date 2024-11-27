@@ -423,6 +423,16 @@ public:
         return *this;
     }
 
+    template<typename ... Args>
+    SelectModel& select(const SqlFunction& sql_function, Args&& ... columns)
+    {
+        const std::string& pb = sql_function.str();
+
+        _select_columns.push_back(pb);
+        select(columns ...);
+        return *this;
+    }
+
     // for recursion
     SelectModel& select()
     {
@@ -436,10 +446,10 @@ public:
     }
 
     // template<typename ... Args>
-    SelectModel& from(const std::string& tablespace, const std::string& table_name)
+    SelectModel& from(const std::string& table_name, const std::string& tablespace = "")
     {
-        assert(table_name.empty());
-        assert(!_table_name.empty());
+        //        assert(table_name.empty());
+        //        assert(!_table_name.empty());
 
 
         if (!tablespace.empty())
