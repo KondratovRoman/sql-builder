@@ -309,6 +309,85 @@ inline std::string to_value<column>(const column& data)
     return data.str();
 }
 
+class SqlFunction
+{
+public:
+    SqlFunction() {}
+    virtual ~SqlFunction() {}
+
+    virtual const std::string& str() const = 0;
+
+private:
+    SqlFunction(const SqlFunction& data)            = delete;
+    SqlFunction& operator=(const SqlFunction& data) = delete;
+
+protected:
+    std::string _sql_func;
+};
+
+class SqlWindowFunction : public SqlFunction
+{
+public:
+    SqlWindowFunction() {}
+    virtual ~SqlWindowFunction() {}
+
+    SqlWindowFunction& row_number(const std::string& column
+                                  , const std::string& partition = ""
+                                  , const std::string& order     = ""
+                                  , const bool& desc             = false)
+    {
+        _sql_func.clear();
+
+
+        _sql_func.append("ROW_NUMBER");
+
+
+        _sql_func.append("(");
+
+        if (!column.empty())
+        {
+            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(column);
+            _sql_func.append("\\\"");                                // + \"
+        }
+        _sql_func.append(")");
+        _sql_func.append(" OVER ");
+        _sql_func.append("(");
+
+
+        if (!partition.empty())
+        {
+            _sql_func.append("PARTITION BY ");
+            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(partition);
+            _sql_func.append("\\\"");                                // + \"
+            _sql_func.append(" ");
+        }
+
+        if (!order.empty())
+        {
+            _sql_func.append("ORDER BY ");
+            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(order);
+            _sql_func.append("\\\"");
+            _sql_func.append(" ");
+        }
+
+        if (!partition.empty() || !order.empty())
+            desc ? _sql_func.append(" DESC ")
+                 : _sql_func.append(" ASC ");
+        _sql_func.append(")");
+        return *this;
+    }
+
+    virtual const std::string& str() const override
+    {
+        return _sql_func;
+    }
+
+private:
+};
+
 class SqlModel
 {
 public:
