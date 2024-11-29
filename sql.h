@@ -387,7 +387,6 @@ private:
         {
             _sql_func.append("ORDER BY ");
             _sql_func.append(quotes + order + quotes);
-            .
             _sql_func.append(" ");
         }
 
@@ -470,16 +469,14 @@ public:
             _table_name.append(tablespace);
             _table_name.append(".");
         }
-        _table_name.append(quotes);
-        _table_name.append(table_name);
-        _table_name.append(quotes);
+        _table_name.append(quotes + table_name + quotes);
         _table_name.append(" ");
 
         return *this;
     }
 
     //    // for recursion
-    //    SelectModel& from() {
+    //    DeleteModel& from() {
     //        return *this;
     //    }
 
@@ -910,26 +907,27 @@ public:
     }
 
     template<typename ... Args>
-    DeleteModel& from(const std::string& table_name, Args&& ... tables)
+    DeleteModel& from(const std::string& table_name, const std::string& tablespace = "")
     {
-        if (_table_name.empty())
+        //        assert(table_name.empty());
+        //        assert(!_table_name.empty());
+
+
+        if (!tablespace.empty())
         {
-            _table_name = table_name;
+            _table_name.append(tablespace);
+            _table_name.append(".");
         }
-        else
-        {
-            _table_name.append(", ");
-            _table_name.append(table_name);
-        }
-        from(tables ...);
+        _table_name.append(quotes + table_name + quotes);
+        _table_name.append(" ");
+
         return *this;
     }
 
-    // for recursion
-    DeleteModel& from()
-    {
-        return *this;
-    }
+    //    // for recursion
+    //    SelectModel& from() {
+    //        return *this;
+    //    }
 
     DeleteModel& where(const std::string& condition)
     {
