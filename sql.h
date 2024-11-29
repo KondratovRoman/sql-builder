@@ -3,6 +3,13 @@
 #include <vector>
 #include <string>
 
+namespace  {
+
+const std::string& quotes("\"");
+
+}
+
+
 namespace sql {
 
 class column;
@@ -346,9 +353,9 @@ public:
 
         if (!column.empty())
         {
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
             _sql_func.append(column);
-            _sql_func.append("\\\"");                                // + \"
+            _sql_func.append(quotes);                                // + \"
         }
         _sql_func.append(")");
         _sql_func.append(" OVER ");
@@ -358,18 +365,18 @@ public:
         if (!partition.empty())
         {
             _sql_func.append("PARTITION BY ");
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
             _sql_func.append(partition);
-            _sql_func.append("\\\"");                                // + \"
+            _sql_func.append(quotes);                                // + \"
             _sql_func.append(" ");
         }
 
         if (!order.empty())
         {
             _sql_func.append("ORDER BY ");
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
+            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
             _sql_func.append(order);
-            _sql_func.append("\\\"");
+            _sql_func.append(quotes);
             _sql_func.append(" ");
         }
 
@@ -418,7 +425,9 @@ public:
     template<typename ... Args>
     SelectModel& select(const std::string& str, Args&& ... columns)
     {
-        _select_columns.push_back(str);
+        const std::string& pb(quotes + str + quotes);
+
+        _select_columns.push_back(pb);
         select(columns ...);
         return *this;
     }
@@ -457,9 +466,9 @@ public:
             _table_name.append(tablespace);
             _table_name.append(".");
         }
-        _table_name.append("\\\"");
+        _table_name.append(quotes);
         _table_name.append(table_name);
-        _table_name.append("\\\"");
+        _table_name.append(quotes);
         _table_name.append(" ");
 
         return *this;
