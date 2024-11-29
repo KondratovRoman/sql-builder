@@ -319,7 +319,8 @@ inline std::string to_value<column>(const column& data)
 class SqlFunction
 {
 public:
-    SqlFunction() {}
+    SqlFunction() :
+        _sql_func("") {}
     virtual ~SqlFunction() {}
 
     virtual const std::string& str() const = 0;
@@ -335,7 +336,7 @@ protected:
 class SqlWindowFunction : public SqlFunction
 {
 public:
-    SqlWindowFunction() {}
+    SqlWindowFunction()  {}
     virtual ~SqlWindowFunction() {}
 
     SqlWindowFunction& row_number(const std::string& column
@@ -343,20 +344,32 @@ public:
                                   , const std::string& order     = ""
                                   , const bool& desc             = false)
     {
+        return w_function("ROW_NUMBER", column, partition, order, desc);
+    }
+
+    virtual const std::string& str() const override
+    {
+        return _sql_func;
+    }
+
+private:
+
+    SqlWindowFunction& w_function(const std::string&  function_name, const std::string& column
+                                  , const std::string& partition = ""
+                                  , const std::string& order     = ""
+                                  , const bool& desc             = false)
+    {
         _sql_func.clear();
 
 
-        _sql_func.append("ROW_NUMBER");
+        _sql_func.append(function_name);
 
 
         _sql_func.append("(");
 
         if (!column.empty())
-        {
-            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
-            _sql_func.append(column);
-            _sql_func.append(quotes);                                // + \"
-        }
+            _sql_func.append(quotes + column + quotes);
+
         _sql_func.append(")");
         _sql_func.append(" OVER ");
         _sql_func.append("(");
@@ -365,18 +378,16 @@ public:
         if (!partition.empty())
         {
             _sql_func.append("PARTITION BY ");
-            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
-            _sql_func.append(partition);
-            _sql_func.append(quotes);                                // + \"
+            _sql_func.append(quotes + partition + quotes);
+
             _sql_func.append(" ");
         }
 
         if (!order.empty())
         {
             _sql_func.append("ORDER BY ");
-            _sql_func.append(quotes);                                // ROW_NUMBER(+ \"
-            _sql_func.append(order);
-            _sql_func.append(quotes);
+            _sql_func.append(quotes + order + quotes);
+            .
             _sql_func.append(" ");
         }
 
@@ -386,13 +397,6 @@ public:
         _sql_func.append(")");
         return *this;
     }
-
-    virtual const std::string& str() const override
-    {
-        return _sql_func;
-    }
-
-private:
 };
 
 class SqlModel
