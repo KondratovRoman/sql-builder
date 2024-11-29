@@ -112,7 +112,7 @@ class column
 public:
     column(const std::string& column)
     {
-        _cond = column;
+        _cond = quotes + column + quotes;
     }
 
     virtual ~column() {}
@@ -923,11 +923,6 @@ public:
 
         return *this;
     }
-
-    //    // for recursion
-    //    SelectModel& from() {
-    //        return *this;
-    //    }
 
     DeleteModel& where(const std::string& condition)
     {
