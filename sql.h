@@ -468,7 +468,7 @@ private:
     }
 };
 
-class DateTypeFormatingFunction : public SqlFunction
+class TimeFormatingFunction : public SqlFunction
 {
 public:
     TimeFormatingFunction() {}
@@ -496,32 +496,35 @@ private:
 class DataTypeFormatingFunction : public SqlFunction
 {
 public:
-    DataTypeFormatingFunction()
-    {}
+    DataTypeFormatingFunction(const std::string& as = "")
+    {
+        if (!as.empty())
+            _as.append(" as " + quotes + as + quotes);
+    }
+
+    virtual const std::string& str() const override
+    {
+        return _sql_func + _as;
+    }
 
     virtual ~DataTypeFormatingFunction() {}
 
 
-    DateTypeFormatingFunction& to_char(const std::string& data,
+    DataTypeFormatingFunction& to_char(const sql::TimeFormatingFunction& tf_func,
                                        const bool& is_text,
                                        const  std::string& format = "")
     {
-        return dtf_function("to_char", data, is_text, format);
+        return dtf_function("to_char", tf_func.str(), is_text, format);
     }
 
-    DateTypeFormatingFunction& to_char(const column& data,
+    DataTypeFormatingFunction& to_char(const column& data,
                                        const std::string& format = "")
     {
         return dtf_function("to_char", data.str(), false, format);
     }
 
-    virtual const std::string& str() const override
-    {
-        return _sql_func;
-    }
-
 private:
-    DateTypeFormatingFunction& dtf_function(const std::string& name,
+    DataTypeFormatingFunction& dtf_function(const std::string& name,
                                             const std::string& data,
                                             const bool& is_column,
                                             const  std::string& format = "")
@@ -536,7 +539,10 @@ private:
         _sql_func.append(")");
         return *this;
     }
+
+    std::string _as = "";
 };
+
 
 
 class SqlModel
