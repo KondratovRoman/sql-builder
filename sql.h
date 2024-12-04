@@ -543,7 +543,40 @@ private:
     std::string _as = "";
 };
 
+class conditional_expressions : public SqlFunction
+{
+public:
+    conditional_expressions(const std::string& as = "")
+    {
+        _sql_func.append(" COALESCE ( ");
 
+        if (!as.empty())
+            _as.append(" as " + quotes + as + quotes);
+    }
+
+    virtual const std::string& str() const override
+    {
+        return _sql_func + _as;
+    }
+
+    virtual  ~conditional_expressions() {}
+
+    template<typename T, typename ... Args>
+    conditional_expressions& coalesce(const T& col, Args&& ... cols)
+    {
+        _sql_func.append(to_value(col));
+        coalesce(cols ...);
+        return *this;
+    }
+
+private:
+    conditional_expressions& coalesce()
+    {
+        return *this;
+    }
+
+    std::string _as = "";
+};
 
 class SqlModel
 {
@@ -1148,4 +1181,4 @@ protected:
 };
 
 }
- 
+
