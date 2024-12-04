@@ -14,8 +14,14 @@ namespace sql {
 
 class column;
 
+class column_value;
 
+class SqlWindowFunction;
 
+class conditional_expressions;
+
+class DataTypeFormatingFunction;
+class TimeFormatingFunction;
 class Param
 {
 public:
@@ -37,6 +43,19 @@ inline std::string to_value(const T& data)
 {
     return std::to_string(data);
 }
+
+#define TO_VALUE_FUNCTION(TYPE)                     \
+    inline std::string to_value(const TYPE& data) { \
+        return data.str();                          \
+    }
+
+TO_VALUE_FUNCTION(SqlWindowFunction);
+TO_VALUE_FUNCTION(DataTypeFormatingFunction);
+TO_VALUE_FUNCTION(TimeFormatingFunction);
+TO_VALUE_FUNCTION(sql::column_value);
+TO_VALUE_FUNCTION(sql::column);
+TO_VALUE_FUNCTION(sql::conditional_expressions);
+
 
 template<size_t N>
 inline std::string to_value(char const (&data)[N])
@@ -76,6 +95,13 @@ inline std::string to_value<Param>(const Param& data)
 
 template<>
 inline std::string to_value<column>(const column& data);
+
+template<>
+inline std::string to_value<column_value>(const column_value& data);
+
+template<>
+inline std::string to_value<conditional_expressions>(const conditional_expressions& data);
+
 
 /*
    template <>
@@ -359,13 +385,23 @@ private:
     std::string _cond;
 };
 
+
+template<>
+inline std::string to_value<column>(const column& data)
+{
+    return data.str();
+}
+
 class column_value
 {
 public:
 
-    column_value(const std::string& column_value, const std::string& as = "")
+    column_value(const std::string& column_value,  const std::string& convert_to = "", const std::string& as = "")
     {
         _cond.append("'" + column_value + "'");
+
+        if (!convert_to.empty())
+            _cond.append(" ::" + convert_to);
 
         if (!as.empty())
             _cond.append(" as " + as);
@@ -381,7 +417,7 @@ private:
 };
 
 template<>
-inline std::string to_value<column>(const column& data)
+inline std::string to_value<column_value>(const column_value& data)
 {
     return data.str();
 }
@@ -393,7 +429,12 @@ public:
         _sql_func("") {}
     virtual ~SqlFunction() {}
 
-    virtual const std::string& str() const = 0;
+
+
+    const std::string str()
+    {
+        return _sql_func + _as;
+    }
 
 private:
     SqlFunction(const SqlFunction& data)            = delete;
@@ -401,12 +442,20 @@ private:
 
 protected:
     std::string _sql_func;
+    std::string _as = "";
 };
+
+
 
 class SqlWindowFunction : public SqlFunction
 {
 public:
-    SqlWindowFunction()  {}
+    SqlWindowFunction(const std::string& as = "")
+    {
+        if (!as.empty())
+            _as = " as " + as;
+    }
+
     virtual ~SqlWindowFunction() {}
 
     SqlWindowFunction& row_number(const std::string& column
@@ -415,11 +464,6 @@ public:
                                   , const bool& desc             = false)
     {
         return w_function("ROW_NUMBER", column, partition, order, desc);
-    }
-
-    virtual const std::string& str() const override
-    {
-        return _sql_func;
     }
 
 private:
@@ -471,18 +515,18 @@ private:
 class TimeFormatingFunction : public SqlFunction
 {
 public:
-    TimeFormatingFunction() {}
+    TimeFormatingFunction(const std::string& as = "")
+    {
+        if (!as.empty())
+            _as = as;
+    }
+
     virtual ~TimeFormatingFunction() {}
 
 
     TimeFormatingFunction& to_timestamp(const column& data)
     {
         return t_function("to_timestamp", data);
-    }
-
-    virtual const std::string& str() const override
-    {
-        return _sql_func;
     }
 
 private:
@@ -500,11 +544,6 @@ public:
     {
         if (!as.empty())
             _as.append(" as " + quotes + as + quotes);
-    }
-
-    virtual const std::string& str() const override
-    {
-        return _sql_func + _as;
     }
 
     virtual ~DataTypeFormatingFunction() {}
@@ -539,24 +578,18 @@ private:
         _sql_func.append(")");
         return *this;
     }
-
-    std::string _as = "";
 };
 
 class conditional_expressions : public SqlFunction
 {
 public:
+
     conditional_expressions(const std::string& as = "")
     {
         _sql_func.append(" COALESCE ( ");
 
         if (!as.empty())
             _as.append(" as " + quotes + as + quotes);
-    }
-
-    virtual const std::string& str() const override
-    {
-        return _sql_func + _as;
     }
 
     virtual  ~conditional_expressions() {}
@@ -570,13 +603,20 @@ public:
     }
 
 private:
+
     conditional_expressions& coalesce()
     {
+        _sql_func.append(" ) " + _as);
         return *this;
     }
-
-    std::string _as = "";
 };
+
+
+template<>
+inline std::string to_value<conditional_expressions>(const  conditional_expressions& data)
+{
+    return data.str();
+}
 
 class SqlModel
 {
@@ -618,7 +658,7 @@ public:
     template<typename ... Args>
     SelectModel& select(const SqlFunction& sql_function, Args&& ... columns)
     {
-        const std::string& pb = sql_function.str();
+        const std::string& pb = to_value(sql_function);
 
         _select_columns.push_back(pb);
         select(columns ...);
@@ -644,6 +684,16 @@ public:
         select(columns ...);
         return *this;
     }
+
+    //    template<typename T, typename ... Args>
+    //    SelectModel& select(const T  data, Args&& ... columns)
+    //    {
+    //        const std::string& pb = to_value(data);
+
+    //        _select_columns.push_back(pb);
+    //        select(columns ...);
+    //        return *this;
+    //    }
 
     // for recursion
     SelectModel& select()
@@ -1181,4 +1231,3 @@ protected:
 };
 
 }
-
