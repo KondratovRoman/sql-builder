@@ -732,7 +732,16 @@ public:
 
     InsertModel& into(const std::string& table_name)
     {
-        _table_name = table_name;
+        return insert(c);
+    }
+
+    InsertModel& into(const std::string& table_name, const std::string& tablespace = "")
+    {
+        _table_name.clear();
+
+        if (!tablespace.empty())
+            _table_name.append(tablespace + ".");
+        _table_name.append(quotes + table_name + quotes);
         return *this;
     }
 
