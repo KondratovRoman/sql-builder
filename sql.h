@@ -719,8 +719,15 @@ public:
     template<typename T>
     InsertModel& insert(const std::string& c, const T& data)
     {
-        _columns.push_back(c);
+        _columns.push_back(quotes + c + quotes);
         _values.push_back(to_value(data));
+        return *this;
+    }
+
+    InsertModel& insert(const std::string& c)
+    {
+        _columns.push_back(quotes + c + quotes);
+        _values.push_back(" ? ");
         return *this;
     }
 
@@ -730,7 +737,7 @@ public:
         return insert(c, data);
     }
 
-    InsertModel& into(const std::string& table_name)
+    InsertModel& operator()(const std::string& c)
     {
         return insert(c);
     }
