@@ -320,6 +320,38 @@ public:
         return *this;
     }
 
+    template<typename T>
+    column& operator/(const T& data)
+    {
+        _cond.append(" / ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator+(const T& data)
+    {
+        _cond.append(" + ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator*(const T& data)
+    {
+        _cond.append(" * ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator-(const T& data)
+    {
+        _cond.append(" - ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
     const std::string& str() const
     {
         return _cond;
