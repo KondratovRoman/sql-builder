@@ -138,12 +138,6 @@ public:
 
     virtual ~column() {}
 
-    column& as(const std::string& s)
-    {
-        _cond.append(" as ");
-        _cond.append(s);
-        return *this;
-    }
 
     column& is_null()
     {
@@ -1148,3 +1142,4 @@ protected:
 };
 
 }
+ 
