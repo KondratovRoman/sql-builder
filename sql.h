@@ -445,17 +445,35 @@ private:
 class DateTypeFormatingFunction : public SqlFunction
 {
 public:
-    DateTypeFormatingFunction(/*const std::string& data,
-                                 const bool& is_text*/
-        )
+    TimeFormatingFunction() {}
+    virtual ~TimeFormatingFunction() {}
+
+
+    TimeFormatingFunction& to_timestamp(const column& data)
     {
-        /*    if (is_text)
-                _sql_func.append("'" + data + "'");
-            else
-                _sql_func.append("\"" + data + "\"");*/
+        return t_function("to_timestamp", data);
     }
 
-    virtual ~DateTypeFormatingFunction() {}
+    virtual const std::string& str() const override
+    {
+        return _sql_func;
+    }
+
+private:
+    TimeFormatingFunction& t_function(const std::string& name, const column& data)
+    {
+        _sql_func.append(name + "(" + data.str() + ")");
+        return *this;
+    }
+};
+
+class DataTypeFormatingFunction : public SqlFunction
+{
+public:
+    DataTypeFormatingFunction()
+    {}
+
+    virtual ~DataTypeFormatingFunction() {}
 
 
     DateTypeFormatingFunction& to_char(const std::string& data,
@@ -1098,4 +1116,3 @@ protected:
 };
 
 }
- 
