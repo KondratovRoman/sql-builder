@@ -445,20 +445,35 @@ private:
 class DateTypeFormatingFunction : public SqlFunction
 {
 public:
-    DateTypeFormatingFunction() {}
+    DateTypeFormatingFunction(/*const std::string& data,
+                                 const bool& is_text*/
+        )
+    {
+        /*    if (is_text)
+                _sql_func.append("'" + data + "'");
+            else
+                _sql_func.append("\"" + data + "\"");*/
+    }
+
     virtual ~DateTypeFormatingFunction() {}
+
+
+    DateTypeFormatingFunction& to_char(const std::string& data,
+                                       const bool& is_text,
+                                       const  std::string& format = "")
+    {
+        return dtf_function("to_char", data, is_text, format);
+    }
+
+    DateTypeFormatingFunction& to_char(const column& data,
+                                       const std::string& format = "")
+    {
+        return dtf_function("to_char", data.str(), false, format);
+    }
 
     virtual const std::string& str() const override
     {
         return _sql_func;
-    }
-
-    DateTypeFormatingFunction& to_char(const std::string& name,
-                                       const std::string& data,
-                                       const bool& is_text,
-                                       const  std::string& format = "")
-    {
-        return dtf_function(name, data, is_text, format);
     }
 
 private:
@@ -473,8 +488,9 @@ private:
         _sql_func.append(data);
 
         if (!format.empty())
-            _sql_func.append("," + format);
+            _sql_func.append(", '" + format + "'");
         _sql_func.append(")");
+        return *this;
     }
 };
 
@@ -535,8 +551,6 @@ public:
         select(columns ...);
         return *this;
     }
-
-    // #define
 
     template<typename ... Args>
     SelectModel& select(const column_value data, Args&& ... columns)
@@ -1084,3 +1098,4 @@ protected:
 };
 
 }
+ 
