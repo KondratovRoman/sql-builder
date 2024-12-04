@@ -458,7 +458,7 @@ public:
                                        const bool& is_text,
                                        const  std::string& format = "")
     {
-        return dtf_function(name, data, is_text, format)
+        return dtf_function(name, data, is_text, format);
     }
 
 private:
@@ -536,10 +536,16 @@ public:
         return *this;
     }
 
+    // #define
+
     template<typename ... Args>
-    SelectModel& select(const column_value, Args&& ... columns)
+    SelectModel& select(const column_value data, Args&& ... columns)
     {
-        const std::string&
+        const std::string& pb = data.str();
+
+        _select_columns.push_back(pb);
+        select(columns ...);
+        return *this;
     }
 
     // for recursion
