@@ -14,6 +14,8 @@ namespace sql {
 
 class column;
 
+
+
 class Param
 {
 public:
@@ -331,6 +333,27 @@ private:
     std::string _cond;
 };
 
+class column_value
+{
+public:
+
+    column_value(const std::string& column_value, const std::string& as = "")
+    {
+        _cond.append("'" + column_value + "'");
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+    }
+
+    const std::string& str() const
+    {
+        return _cond;
+    }
+
+private:
+    std::string _cond;
+};
+
 template<>
 inline std::string to_value<column>(const column& data)
 {
@@ -474,6 +497,12 @@ public:
         _select_columns.push_back(pb);
         select(columns ...);
         return *this;
+    }
+
+    template<typename ... Args>
+    SelectModel& select(const column_value, Args&& ... columns)
+    {
+        const std::string&
     }
 
     // for recursion
