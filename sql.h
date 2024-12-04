@@ -442,6 +442,43 @@ private:
     }
 };
 
+class DateTypeFormatingFunction : public SqlFunction
+{
+public:
+    DateTypeFormatingFunction() {}
+    virtual ~DateTypeFormatingFunction() {}
+
+    virtual const std::string& str() const override
+    {
+        return _sql_func;
+    }
+
+    DateTypeFormatingFunction& to_char(const std::string& name,
+                                       const std::string& data,
+                                       const bool& is_text,
+                                       const  std::string& format = "")
+    {
+        return dtf_function(name, data, is_text, format)
+    }
+
+private:
+    DateTypeFormatingFunction& dtf_function(const std::string& name,
+                                            const std::string& data,
+                                            const bool& is_column,
+                                            const  std::string& format = "")
+    {
+        _sql_func.append(name);
+
+        _sql_func.append("(");
+        _sql_func.append(data);
+
+        if (!format.empty())
+            _sql_func.append("," + format);
+        _sql_func.append(")");
+    }
+};
+
+
 class SqlModel
 {
 public:
