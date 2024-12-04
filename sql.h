@@ -110,9 +110,28 @@ void join_vector(std::string& result, const std::vector<T>& vec, const char* sep
 class column
 {
 public:
-    column(const std::string& column)
+
+    // alias
+    column(const std::string& column_name, const std::string& alias = "", const std::string& as = "")
     {
-        _cond = quotes + column + quotes;
+        if (!alias.empty())
+            _cond.append(alias + ".");
+        _cond.append(quotes + column_name + quotes);
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+    }
+
+    column& operator()(const std::string& column_name, const std::string& alias = "", const std::string& as = "")
+    {
+        if (!alias.empty())
+            _cond.append(alias + ".");
+        _cond.append(quotes + column_name + quotes);
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+
+        return *this;
     }
 
     virtual ~column() {}
@@ -140,6 +159,7 @@ public:
     column& in (const std::vector<T>& args) {
         size_t size = args.size();
 
+
         if (size == 1)
         {
             _cond.append(" = ");
@@ -165,6 +185,7 @@ public:
         }
         return *this;
     }
+
 
     template<typename T>
     column& not_in(const std::vector<T>& args)
@@ -445,6 +466,16 @@ public:
         return *this;
     }
 
+    template<typename ... Args>
+    SelectModel& select(const column column_struct, Args&& ... columns)
+    {
+        const std::string& pb = column_struct.str();
+
+        _select_columns.push_back(pb);
+        select(columns ...);
+        return *this;
+    }
+
     // for recursion
     SelectModel& select()
     {
@@ -474,11 +505,6 @@ public:
 
         return *this;
     }
-
-    //    // for recursion
-    //    DeleteModel& from() {
-    //        return *this;
-    //    }
 
     SelectModel& join(const std::string& table_name)
     {
