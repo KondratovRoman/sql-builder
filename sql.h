@@ -678,12 +678,8 @@ public:
     }
 
     // template<typename ... Args>
-    SelectModel& from(const std::string& table_name, const std::string& tablespace = "")
+    SelectModel& from(const std::string& table_name, const std::string& tablespace = "", const std::string& alias = "")
     {
-        //        assert(table_name.empty());
-        //        assert(!_table_name.empty());
-
-
         if (!tablespace.empty())
         {
             _table_name.append(tablespace);
