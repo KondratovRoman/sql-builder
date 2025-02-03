@@ -580,7 +580,7 @@ public:
     template<typename T, typename ... Args>
     conditional_expressions& coalesce(const T& col, Args&& ... cols)
     {
-        _sql_func.append(to_value(col));
+        _sql_func.append(to_value(col) + " , ");
         coalesce(cols ...);
         return *this;
     }
@@ -588,6 +588,10 @@ public:
 private:
     conditional_expressions& coalesce()
     {
+        // remove last comma
+        if (_sql_func.size() > 4)
+            _sql_func = _sql_func.substr(0, _sql_func.size() - 3);
+        _sql_func.append(" ) ");
         return *this;
     }
 
