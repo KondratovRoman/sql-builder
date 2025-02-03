@@ -3,9 +3,18 @@
 #include <vector>
 #include <string>
 
+namespace  {
+
+const std::string& quotes("\"");
+
+}
+
+
 namespace sql {
 
 class column;
+
+
 
 class Param
 {
@@ -103,19 +112,32 @@ void join_vector(std::string& result, const std::vector<T>& vec, const char* sep
 class column
 {
 public:
-    column(const std::string& column)
+
+    // alias
+    column(const std::string& column_name, const std::string& alias = "", const std::string& as = "")
     {
-        _cond = column;
+        if (!alias.empty())
+            _cond.append(alias + ".");
+        _cond.append(quotes + column_name + quotes);
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+    }
+
+    column& operator()(const std::string& column_name, const std::string& alias = "", const std::string& as = "")
+    {
+        if (!alias.empty())
+            _cond.append(alias + ".");
+        _cond.append(quotes + column_name + quotes);
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+
+        return *this;
     }
 
     virtual ~column() {}
 
-    column& as(const std::string& s)
-    {
-        _cond.append(" as ");
-        _cond.append(s);
-        return *this;
-    }
 
     column& is_null()
     {
@@ -132,6 +154,7 @@ public:
     template<typename T>
     column& in (const std::vector<T>& args) {
         size_t size = args.size();
+
 
         if (size == 1)
         {
@@ -158,6 +181,7 @@ public:
         }
         return *this;
     }
+
 
     template<typename T>
     column& not_in(const std::vector<T>& args)
@@ -290,6 +314,38 @@ public:
         return *this;
     }
 
+    template<typename T>
+    column& operator/(const T& data)
+    {
+        _cond.append(" / ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator+(const T& data)
+    {
+        _cond.append(" + ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator*(const T& data)
+    {
+        _cond.append(" * ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
+    template<typename T>
+    column& operator-(const T& data)
+    {
+        _cond.append(" - ");
+        _cond.append(to_value(data));
+        return *this;
+    }
+
     const std::string& str() const
     {
         return _cond;
@@ -297,6 +353,30 @@ public:
 
     operator bool() {
         return true;
+    }
+
+private:
+    std::string _cond;
+};
+
+class column_value
+{
+public:
+
+    column_value(const std::string& column_value, const std::string& to_type = "", const std::string& as = "")
+    {
+        _cond.append("'" + column_value + "'");
+
+        if (!to_type.empty())
+            _cond.append(" ::" + to_type);
+
+        if (!as.empty())
+            _cond.append(" as " + as);
+    }
+
+    const std::string& str() const
+    {
+        return _cond;
     }
 
 private:
@@ -312,10 +392,11 @@ inline std::string to_value<column>(const column& data)
 class SqlFunction
 {
 public:
-    SqlFunction() {}
+    SqlFunction() :
+        _sql_func("") {}
     virtual ~SqlFunction() {}
 
-    virtual const std::string& str() const = 0;
+    virtual  std::string str() const = 0;
 
 private:
     SqlFunction(const SqlFunction& data)            = delete;
@@ -328,7 +409,7 @@ protected:
 class SqlWindowFunction : public SqlFunction
 {
 public:
-    SqlWindowFunction() {}
+    SqlWindowFunction()  {}
     virtual ~SqlWindowFunction() {}
 
     SqlWindowFunction& row_number(const std::string& column
@@ -336,20 +417,32 @@ public:
                                   , const std::string& order     = ""
                                   , const bool& desc             = false)
     {
+        return w_function("ROW_NUMBER", column, partition, order, desc);
+    }
+
+    virtual   std::string  str() const override
+    {
+        return _sql_func;
+    }
+
+private:
+
+    SqlWindowFunction& w_function(const std::string&  function_name, const std::string& column
+                                  , const std::string& partition = ""
+                                  , const std::string& order     = ""
+                                  , const bool& desc             = false)
+    {
         _sql_func.clear();
 
 
-        _sql_func.append("ROW_NUMBER");
+        _sql_func.append(function_name);
 
 
         _sql_func.append("(");
 
         if (!column.empty())
-        {
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
-            _sql_func.append(column);
-            _sql_func.append("\\\"");                                // + \"
-        }
+            _sql_func.append(quotes + column + quotes);
+
         _sql_func.append(")");
         _sql_func.append(" OVER ");
         _sql_func.append("(");
@@ -358,18 +451,15 @@ public:
         if (!partition.empty())
         {
             _sql_func.append("PARTITION BY ");
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
-            _sql_func.append(partition);
-            _sql_func.append("\\\"");                                // + \"
+            _sql_func.append(quotes + partition + quotes);
+
             _sql_func.append(" ");
         }
 
         if (!order.empty())
         {
             _sql_func.append("ORDER BY ");
-            _sql_func.append("\\\"");                                // ROW_NUMBER(+ \"
-            _sql_func.append(order);
-            _sql_func.append("\\\"");
+            _sql_func.append(quotes + order + quotes);
             _sql_func.append(" ");
         }
 
@@ -379,13 +469,122 @@ public:
         _sql_func.append(")");
         return *this;
     }
+};
 
-    virtual const std::string& str() const override
+class TimeFormatingFunction : public SqlFunction
+{
+public:
+    TimeFormatingFunction() {}
+    virtual ~TimeFormatingFunction() {}
+
+
+    TimeFormatingFunction& to_timestamp(const column& data)
+    {
+        return t_function("to_timestamp", data);
+    }
+
+    virtual   std::string  str() const override
     {
         return _sql_func;
     }
 
 private:
+    TimeFormatingFunction& t_function(const std::string& name, const column& data)
+    {
+        _sql_func.append(name + "(" + data.str() + ")");
+        return *this;
+    }
+};
+
+class DataTypeFormatingFunction : public SqlFunction
+{
+public:
+    DataTypeFormatingFunction(const std::string& as = "")
+    {
+        if (!as.empty())
+            _as.append(" as " + quotes + as + quotes);
+    }
+
+    std::string str() const override
+    {
+        // std::string result = _sql_func;
+
+        // result = result.append(_as);
+        return _sql_func + _as;    // CRASHES WTF
+    }
+
+    virtual ~DataTypeFormatingFunction() {}
+
+
+    DataTypeFormatingFunction& to_char(const sql::TimeFormatingFunction& tf_func,
+                                       const bool& is_text,
+                                       const  std::string& format = "")
+    {
+        DataTypeFormatingFunction& text = dtf_function("to_char", tf_func.str(), is_text, format);
+        std::string text_SDF            = text.str();
+
+        return text;
+    }
+
+    DataTypeFormatingFunction& to_char(const column& data,
+                                       const std::string& format = "")
+    {
+        return dtf_function("to_char", data.str(), false, format);
+    }
+
+private:
+    DataTypeFormatingFunction& dtf_function(const std::string& name,
+                                            const std::string& data,
+                                            const bool& is_column,
+                                            const  std::string& format = "")
+    {
+        _sql_func.append(name);
+
+        _sql_func.append("(");
+        _sql_func.append(data);
+
+        if (!format.empty())
+            _sql_func.append(", '" + format + "'");
+        _sql_func.append(")");
+        return *this;
+    }
+
+    std::string _as;
+};
+
+class conditional_expressions : public SqlFunction
+{
+public:
+    conditional_expressions(const std::string& as = "")
+    {
+        _sql_func.append(" COALESCE ( ");
+
+        if (!as.empty())
+            _as.append(" as " + quotes + as + quotes);
+    }
+
+    virtual  std::string str() const override
+    {
+        return _sql_func + _as;
+    }
+
+    virtual  ~conditional_expressions() {}
+
+    template<typename T, typename ... Args>
+    conditional_expressions& coalesce(const T& col, Args&& ... cols)
+    {
+        _sql_func.append(to_value(col));
+        coalesce(cols ...);
+        return *this;
+    }
+
+private:
+    conditional_expressions& coalesce()
+    {
+        return *this;
+    }
+
+    std::string _as = "";
 };
 
 class SqlModel
@@ -418,7 +617,9 @@ public:
     template<typename ... Args>
     SelectModel& select(const std::string& str, Args&& ... columns)
     {
-        _select_columns.push_back(str);
+        const std::string& pb(quotes + str + quotes);
+
+        _select_columns.push_back(pb);
         select(columns ...);
         return *this;
     }
@@ -427,6 +628,26 @@ public:
     SelectModel& select(const SqlFunction& sql_function, Args&& ... columns)
     {
         const std::string& pb = sql_function.str();
+
+        _select_columns.push_back(pb);
+        select(columns ...);
+        return *this;
+    }
+
+    template<typename ... Args>
+    SelectModel& select(const column column_struct, Args&& ... columns)
+    {
+        const std::string& pb = column_struct.str();
+
+        _select_columns.push_back(pb);
+        select(columns ...);
+        return *this;
+    }
+
+    template<typename ... Args>
+    SelectModel& select(const column_value data, Args&& ... columns)
+    {
+        const std::string& pb = data.str();
 
         _select_columns.push_back(pb);
         select(columns ...);
@@ -457,18 +678,11 @@ public:
             _table_name.append(tablespace);
             _table_name.append(".");
         }
-        _table_name.append("\\\"");
-        _table_name.append(table_name);
-        _table_name.append("\\\"");
+        _table_name.append(quotes + table_name + quotes);
         _table_name.append(" ");
 
         return *this;
     }
-
-    //    // for recursion
-    //    SelectModel& from() {
-    //        return *this;
-    //    }
 
     SelectModel& join(const std::string& table_name)
     {
@@ -709,8 +923,15 @@ public:
     template<typename T>
     InsertModel& insert(const std::string& c, const T& data)
     {
-        _columns.push_back(c);
+        _columns.push_back(quotes + c + quotes);
         _values.push_back(to_value(data));
+        return *this;
+    }
+
+    InsertModel& insert(const std::string& c)
+    {
+        _columns.push_back(quotes + c + quotes);
+        _values.push_back(" ? ");
         return *this;
     }
 
@@ -720,9 +941,18 @@ public:
         return insert(c, data);
     }
 
-    InsertModel& into(const std::string& table_name)
+    InsertModel& operator()(const std::string& c)
     {
-        _table_name = table_name;
+        return insert(c);
+    }
+
+    InsertModel& into(const std::string& table_name, const std::string& tablespace = "")
+    {
+        _table_name.clear();
+
+        if (!tablespace.empty())
+            _table_name.append(tablespace + ".");
+        _table_name.append(quotes + table_name + quotes);
         return *this;
     }
 
@@ -897,24 +1127,20 @@ public:
     }
 
     template<typename ... Args>
-    DeleteModel& from(const std::string& table_name, Args&& ... tables)
+    DeleteModel& from(const std::string& table_name, const std::string& tablespace = "")
     {
-        if (_table_name.empty())
-        {
-            _table_name = table_name;
-        }
-        else
-        {
-            _table_name.append(", ");
-            _table_name.append(table_name);
-        }
-        from(tables ...);
-        return *this;
-    }
+        //        assert(table_name.empty());
+        //        assert(!_table_name.empty());
 
-    // for recursion
-    DeleteModel& from()
-    {
+
+        if (!tablespace.empty())
+        {
+            _table_name.append(tablespace);
+            _table_name.append(".");
+        }
+        _table_name.append(quotes + table_name + quotes);
+        _table_name.append(" ");
+
         return *this;
     }
 
@@ -964,3 +1190,37 @@ protected:
 };
 
 }
+// #define  DIAGNOSIS_FLIGHT(NAME, SUBSYSTEM,  FLIGHT_TYPE, TEST_PARAMETERS, TITLE, RESULTS) \
+//    ac_menu_ ## SUBSYSTEM ## NAME ## _ = new QAction(TITLE, this);                        \
+//    menu_ ## SUBSYSTEM ## _->addAction(ac_menu_ ## SUBSYSTEM ## NAME ## _);
+
+//    ALL_DIAGNOSIS_FLIGHTS
+// #undef DIAGNOSIS_FLIGHT
+// #define ALL_DIAGNOSIS_FLIGHTS                                                \
+//    DIAGNOSIS_FLIGHT(GeoBinding, PAR,                                        \
+//                     FlightType::kGeoBinding,                                \
+//                     { TestedParameter::pCircleGeoBinding },                 \
+//                     "Определение координат ПАР",                            \
+//                     { TestResultsName::kGeoBindingLatitudeResultName COMMA  \
+//                       TestResultsName::kGeoBindingLongitudeResultName COMMA \
+//                       TestResultsName::kGeoBindingAltitudeResultName COMMA  \
+//                       TestResultsName::kFlightDataIntervalResultName COMMA  \
+//                       TestResultsName::kGeoBindingAzimuthResultName COMMA   \
+//                       TestResultsName::kGeoBindingRollResultName COMMA      \
+//                       TestResultsName::kGeoBindingPitchResultName COMMA     \
+//                     })                                                      \
+//     //
+// #define DIAGNOSIS_FLIGHT(NAME, SUBSYSTEM,  FLIGHT_TYPE, TEST_PARAMETERS, TITLE, RESULTS)             \
+//    const static DiagnosisFlight f ## SUBSYSTEM ## NAME = DiagnosisFlight(Subsystem::s ## SUBSYSTEM, \
+//                                                                          FLIGHT_TYPE,               \
+//                                                                          TEST_PARAMETERS,           \
+//                                                                          TITLE,                     \
+//                                                                          RESULTS);
+
+//    ALL_DIAGNOSIS_FLIGHTS
+// #undef DIAGNOSIS_FLIGHT
+
+
+// #define SELECT_STATEMENT(TYPE)
+
+// #undef SELECT_STATEMENT(TYPE)
