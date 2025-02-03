@@ -14,7 +14,7 @@ namespace sql {
 
 class column;
 
-
+class column_value;
 
 class Param
 {
@@ -76,6 +76,8 @@ inline std::string to_value<Param>(const Param& data)
 
 template<>
 inline std::string to_value<column>(const column& data);
+template<>
+inline std::string to_value<column_value>(const column_value& data);
 
 /*
    template <>
@@ -385,6 +387,11 @@ private:
 
 template<>
 inline std::string to_value<column>(const column& data)
+{
+    return data.str();
+}
+
+inline std::string to_value(const sql::column_value& data)
 {
     return data.str();
 }
