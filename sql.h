@@ -703,10 +703,23 @@ public:
         return *this;
     }
 
-    SelectModel& left_join(const std::string& table_name)
+    SelectModel& left_join(const std::string& table_name, const std::string& tablespace = "", const std::string& alias = "")
     {
-        _join_type  = "left join";
-        _join_table = table_name;
+        _join_type = " left join ";
+
+        if (!tablespace.empty())
+        {
+            _join_type.append(tablespace);
+            _join_type.append(".");
+        }
+        _join_type.append(quotes + table_name + quotes);
+
+        if (!alias.empty())
+            _join_type.append(" " + alias + " ");
+        else
+            _join_type.append(" ");
+
+
         return *this;
     }
 
