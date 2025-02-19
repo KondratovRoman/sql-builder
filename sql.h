@@ -686,7 +686,12 @@ public:
             _table_name.append(".");
         }
         _table_name.append(quotes + table_name + quotes);
-        _table_name.append(" ");
+
+        if (!alias.empty())
+            _table_name.append(" " + alias + " ");
+        else
+            _table_name.append(" ");
+
 
         return *this;
     }
