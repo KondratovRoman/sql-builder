@@ -158,27 +158,27 @@ public:
         size_t size = args.size();
 
 
-        if (size == 1)
-        {
-            _cond.append(" = ");
-            _cond.append(to_value(args[0]));
-        }
-        else
-        {
-            _cond.append(" in (");
+        //        if (size == 1)
+        //        {
+        //            _cond.append(" = ");
+        //            _cond.append(to_value(args[0]));
+        //        }
+        //        else
+        //        {
+        _cond.append(" in (");
 
-            for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
+        {
+            if (i < size - 1)
             {
-                if (i < size - 1)
-                {
-                    _cond.append(to_value(args[i]));
-                    _cond.append(", ");
-                }
-                else
-                {
-                    _cond.append(to_value(args[i]));
-                }
+                _cond.append(to_value(args[i]));
+                _cond.append(", ");
             }
+            else
+            {
+                _cond.append(to_value(args[i]));
+            }
+            //            }
             _cond.append(")");
         }
         return *this;
@@ -365,9 +365,13 @@ class column_value
 {
 public:
 
-    column_value(const std::string& column_value, const std::string& to_type = "", const std::string& as = "")
+    column_value(const std::string& column_value, const std::string& to_type = "", const std::string& as = "", const bool& is_null = false)
     {
-        _cond.append("'" + column_value + "'");
+        if (!is_null)
+            _cond.append("'" + column_value + "'");
+        else
+            _cond.append(column_value);
+
 
         if (!to_type.empty())
             _cond.append(" ::" + to_type);
