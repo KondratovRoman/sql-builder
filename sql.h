@@ -158,27 +158,27 @@ public:
         size_t size = args.size();
 
 
-        if (size == 1)
-        {
-            _cond.append(" = ");
-            _cond.append(to_value(args[0]));
-        }
-        else
-        {
-            _cond.append(" in (");
+        //        if (size == 1)
+        //        {
+        //            _cond.append(" = ");
+        //            _cond.append(to_value(args[0]));
+        //        }
+        //        else
+        //        {
+        _cond.append(" in (");
 
-            for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
+        {
+            if (i < size - 1)
             {
-                if (i < size - 1)
-                {
-                    _cond.append(to_value(args[i]));
-                    _cond.append(", ");
-                }
-                else
-                {
-                    _cond.append(to_value(args[i]));
-                }
+                _cond.append(to_value(args[i]));
+                _cond.append(", ");
             }
+            else
+            {
+                _cond.append(to_value(args[i]));
+            }
+            //            }
             _cond.append(")");
         }
         return *this;
@@ -361,13 +361,43 @@ private:
     std::string _cond;
 };
 
+
+class table
+{
+public:
+    table(const std::string& table_name, const std::string& tablespace = "", const std::string& alias = "")
+    {
+        if (!tablespace.empty())
+        {
+            table_str_.append(tablespace);
+            table_str_.append(".");
+        }
+        table_str_.append(quotes + table_name + quotes);
+
+        if (!alias.empty())
+            table_str_.append(" " + alias + " ");
+        else
+            table_str_.append(" ");
+    }
+
+    const std::string& str() const
+    {}
+
+private:
+    std::string table_str_ = "";
+};
+
 class column_value
 {
 public:
 
-    column_value(const std::string& column_value, const std::string& to_type = "", const std::string& as = "")
+    column_value(const std::string& column_value, const std::string& to_type = "", const std::string& as = "", const bool& is_null = false)
     {
-        _cond.append("'" + column_value + "'");
+        if (!is_null)
+            _cond.append("'" + column_value + "'");
+        else
+            _cond.append(column_value);
+
 
         if (!to_type.empty())
             _cond.append(" ::" + to_type);
@@ -696,77 +726,84 @@ public:
         return *this;
     }
 
-    SelectModel& join(const std::string& table_name)
+    SelectModel& join_statement(const std::string& join_type,
+                                const std::string& table_name,
+                                const std::string& tablespace,
+                                const std::string& alias,
+                                const std::string& on_conditions)
     {
-        _join_type  = "join";
-        _join_table = table_name;
-        return *this;
-    }
+        //        std::vector<std::pair<std::string, std::vector<std::string>>> type;
 
-    SelectModel& left_join(const std::string& table_name, const std::string& tablespace = "", const std::string& alias = "")
-    {
-        _join_type = " left join ";
+        std::string join_type_and_table(" " + join_type + " ");
 
         if (!tablespace.empty())
-        {
-            _join_type.append(tablespace);
-            _join_type.append(".");
-        }
-        _join_type.append(quotes + table_name + quotes);
+            join_type_and_table.append(tablespace + ".");
+
+        join_type_and_table.append(quotes + table_name + quotes);
 
         if (!alias.empty())
-            _join_type.append(" " + alias + " ");
-        else
-            _join_type.append(" ");
+            join_type_and_table.append(" " + alias + " ");
 
+        _join_type.push_back(std::make_pair(join_type_and_table, on_conditions));
 
         return *this;
     }
 
-    SelectModel& left_outer_join(const std::string& table_name)
+    SelectModel& left_join(const std::string& table_name,
+                           const column& on_conditions,
+                           const std::string& tablespace = "",
+                           const std::string& alias      = ""
+                           )
     {
-        _join_type  = "left outer join";
-        _join_table = table_name;
+        join_statement("LEFT JOIN", table_name, tablespace, alias, on_conditions.str());
+
         return *this;
     }
 
-    SelectModel& right_join(const std::string& table_name)
+    SelectModel& left_outer_join(const std::string& table_name,
+                                 const column& on_conditions,
+                                 const std::string& tablespace = "",
+                                 const std::string& alias      = "")
     {
-        _join_type  = "right join";
-        _join_table = table_name;
+        join_statement("left outer join", table_name, tablespace, alias, on_conditions.str());
+
         return *this;
     }
 
-    SelectModel& right_outer_join(const std::string& table_name)
+    SelectModel& right_join(const std::string& table_name,
+                            const column& on_conditions,
+                            const std::string& tablespace = "",
+                            const std::string& alias      = ""
+                            )
     {
-        _join_type  = "right outer join";
-        _join_table = table_name;
+        join_statement(" right join ", table_name, tablespace, alias, on_conditions.str());
         return *this;
     }
 
-    SelectModel& full_join(const std::string& table_name)
+    SelectModel& right_outer_join(const std::string& table_name,
+                                  const column& on_conditions,
+                                  const std::string& tablespace = "",
+                                  const std::string& alias      = "")
     {
-        _join_type  = "full join";
-        _join_table = table_name;
+        join_statement(" right outer join ", table_name, tablespace, alias, on_conditions.str());
         return *this;
     }
 
-    SelectModel& full_outer_join(const std::string& table_name)
+    SelectModel& full_join(const std::string& table_name,
+                           const column& on_conditions,
+                           const std::string& tablespace = "",
+                           const std::string& alias      = "")
     {
-        _join_type  = "full outer join";
-        _join_table = table_name;
+        join_statement(" full join ", table_name, tablespace, alias, on_conditions.str());
         return *this;
     }
 
-    SelectModel& on(const std::string& condition)
+    SelectModel& full_outer_join(const std::string& table_name,
+                                 const column& on_conditions,
+                                 const std::string& tablespace = "",
+                                 const std::string& alias      = "")
     {
-        _join_on_condition.push_back(condition);
-        return *this;
-    }
-
-    SelectModel& on(const column& condition)
-    {
-        _join_on_condition.push_back(condition.str());
+        join_statement(" FULL OUTER JOIN ", table_name, tablespace, alias, on_conditions.str());
         return *this;
     }
 
@@ -814,6 +851,12 @@ public:
         return *this;
     }
 
+    SelectModel& order_by(const column& order_by)
+    {
+        _order_by = to_value(order_by);
+        return *this;
+    }
+
     template<typename T>
     SelectModel& limit(const T& limit)
     {
@@ -842,23 +885,35 @@ public:
         _sql.append("select ");
 
         if (_distinct)
-            _sql.append("distinct ");
+            _sql.append(" DISTINCT ");
         join_vector(_sql, _select_columns, ", ");
-        _sql.append(" from ");
+        _sql.append(" FROM ");
         _sql.append(_table_name);
+
+        //        if (!_join_type.empty())
+        //        {
+        //            _sql.append(" ");
+        //            _sql.append(_join_type);
+        //            _sql.append(" ");
+        //            _sql.append(_join_table);
+        //        }
+
+        //        if (!_join_on_condition.empty())
+        //        {
+        //            _sql.append(" on ");
+        //            join_vector(_sql, _join_on_condition, " and ");
+        //        }
 
         if (!_join_type.empty())
         {
-            _sql.append(" ");
-            _sql.append(_join_type);
-            _sql.append(" ");
-            _sql.append(_join_table);
-        }
+            for (std::pair<std::string, std::string> join :_join_type)
+            {
+                _sql.append(" " + join.first + " ");
+                std::string on = join.second;
+                _sql.append(" ON ");
 
-        if (!_join_on_condition.empty())
-        {
-            _sql.append(" on ");
-            join_vector(_sql, _join_on_condition, " and ");
+                _sql.append(join.second);
+            }
         }
 
         if (!_where_condition.empty())
@@ -906,8 +961,7 @@ public:
         _groupby_columns.clear();
         _table_name.clear();
         _join_type.clear();
-        _join_table.clear();
-        _join_on_condition.clear();
+        // 64_join_on_condition.clear();
         _where_condition.clear();
         _having_condition.clear();
         _order_by.clear();
@@ -927,9 +981,9 @@ protected:
     bool _distinct;
     std::vector<std::string> _groupby_columns;
     std::string _table_name;
-    std::string _join_type;
-    std::string _join_table;
-    std::vector<std::string> _join_on_condition;
+    std::vector<std::pair<std::string, std::string>> _join_type;
+
+    // std::vector<std::string> _join_on_condition;
     std::vector<std::string> _where_condition;
     std::vector<std::string> _having_condition;
     std::string _order_by;
@@ -1215,37 +1269,3 @@ protected:
 };
 
 }
-// #define  DIAGNOSIS_FLIGHT(NAME, SUBSYSTEM,  FLIGHT_TYPE, TEST_PARAMETERS, TITLE, RESULTS) \
-//    ac_menu_ ## SUBSYSTEM ## NAME ## _ = new QAction(TITLE, this);                        \
-//    menu_ ## SUBSYSTEM ## _->addAction(ac_menu_ ## SUBSYSTEM ## NAME ## _);
-
-//    ALL_DIAGNOSIS_FLIGHTS
-// #undef DIAGNOSIS_FLIGHT
-// #define ALL_DIAGNOSIS_FLIGHTS                                                \
-//    DIAGNOSIS_FLIGHT(GeoBinding, PAR,                                        \
-//                     FlightType::kGeoBinding,                                \
-//                     { TestedParameter::pCircleGeoBinding },                 \
-//                     "Определение координат ПАР",                            \
-//                     { TestResultsName::kGeoBindingLatitudeResultName COMMA  \
-//                       TestResultsName::kGeoBindingLongitudeResultName COMMA \
-//                       TestResultsName::kGeoBindingAltitudeResultName COMMA  \
-//                       TestResultsName::kFlightDataIntervalResultName COMMA  \
-//                       TestResultsName::kGeoBindingAzimuthResultName COMMA   \
-//                       TestResultsName::kGeoBindingRollResultName COMMA      \
-//                       TestResultsName::kGeoBindingPitchResultName COMMA     \
-//                     })                                                      \
-//     //
-// #define DIAGNOSIS_FLIGHT(NAME, SUBSYSTEM,  FLIGHT_TYPE, TEST_PARAMETERS, TITLE, RESULTS)             \
-//    const static DiagnosisFlight f ## SUBSYSTEM ## NAME = DiagnosisFlight(Subsystem::s ## SUBSYSTEM, \
-//                                                                          FLIGHT_TYPE,               \
-//                                                                          TEST_PARAMETERS,           \
-//                                                                          TITLE,                     \
-//                                                                          RESULTS);
-
-//    ALL_DIAGNOSIS_FLIGHTS
-// #undef DIAGNOSIS_FLIGHT
-
-
-// #define SELECT_STATEMENT(TYPE)
-
-// #undef SELECT_STATEMENT(TYPE)
