@@ -434,7 +434,7 @@ public:
     }
 
     const std::string& str() const
-    {}
+    { return table_str_;}
 
 private:
     std::string table_str_ = "";
